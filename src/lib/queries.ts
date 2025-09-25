@@ -1,0 +1,607 @@
+import { prisma } from './prisma'
+
+// User Queries
+export const userQueries = {
+  // Create a new user
+  async createUser(data: { email: string; name?: string }) {
+    try {
+      const user = await prisma.user.create({
+        data,
+        include: {
+          posts: true,
+          profile: true,
+        },
+      })
+      return { success: true, data: user }
+    } catch (error) {
+      console.error('Error creating user:', error)
+      return { success: false, error: 'Failed to create user' }
+    }
+  },
+
+  // Get user by ID with relations
+  async getUserById(id: number) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: {
+          posts: {
+            orderBy: { createdAt: 'desc' },
+          },
+          profile: true,
+        },
+      })
+      return { success: true, data: user }
+    } catch (error) {
+      console.error('Error fetching user:', error)
+      return { success: false, error: 'Failed to fetch user' }
+    }
+  },
+
+  // Get user by email
+  async getUserByEmail(email: string) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: {
+          posts: true,
+          profile: true,
+        },
+      })
+      return { success: true, data: user }
+    } catch (error) {
+      console.error('Error fetching user by email:', error)
+      return { success: false, error: 'Failed to fetch user' }
+    }
+  },
+
+  // Get all users with pagination
+  async getAllUsers(skip = 0, take = 10) {
+    try {
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          skip,
+          take,
+          include: {
+            posts: {
+              select: {
+                id: true,
+                title: true,
+                published: true,
+              },
+            },
+            profile: true,
+          },
+          orderBy: { id: 'asc' },
+        }),
+        prisma.user.count(),
+      ])
+      
+      return { 
+        success: true, 
+        data: { 
+          users, 
+          pagination: { 
+            total, 
+            skip, 
+            take, 
+            hasMore: skip + take < total 
+          } 
+        } 
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      return { success: false, error: 'Failed to fetch users' }
+    }
+  },
+
+  // Update user
+  async updateUser(id: number, data: { name?: string; email?: string }) {
+    try {
+      const user = await prisma.user.update({
+        where: { id },
+        data,
+        include: {
+          posts: true,
+          profile: true,
+        },
+      })
+      return { success: true, data: user }
+    } catch (error) {
+      console.error('Error updating user:', error)
+      return { success: false, error: 'Failed to update user' }
+    }
+  },
+
+  // Delete user
+  async deleteUser(id: number) {
+    try {
+      await prisma.user.delete({
+        where: { id },
+      })
+      return { success: true, message: 'User deleted successfully' }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      return { success: false, error: 'Failed to delete user' }
+    }
+  },
+}
+
+// Post Queries
+export const postQueries = {
+  // Create a new post
+  async createPost(data: { title: string; content?: string; authorId: number; published?: boolean }) {
+    try {
+      const post = await prisma.post.create({
+        data,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+      return { success: true, data: post }
+    } catch (error) {
+      console.error('Error creating post:', error)
+      return { success: false, error: 'Failed to create post' }
+    }
+  },
+
+  // Get post by ID
+  async getPostById(id: number) {
+    try {
+      const post = await prisma.post.findUnique({
+        where: { id },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              profile: true,
+            },
+          },
+        },
+      })
+      return { success: true, data: post }
+    } catch (error) {
+      console.error('Error fetching post:', error)
+      return { success: false, error: 'Failed to fetch post' }
+    }
+  },
+
+  // Get all published posts
+  async getPublishedPosts(skip = 0, take = 10) {
+    try {
+      const [posts, total] = await Promise.all([
+        prisma.post.findMany({
+          where: { published: true },
+          skip,
+          take,
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.post.count({ where: { published: true } }),
+      ])
+      
+      return { 
+        success: true, 
+        data: { 
+          posts, 
+          pagination: { 
+            total, 
+            skip, 
+            take, 
+            hasMore: skip + take < total 
+          } 
+        } 
+      }
+    } catch (error) {
+      console.error('Error fetching published posts:', error)
+      return { success: false, error: 'Failed to fetch posts' }
+    }
+  },
+
+  // Get posts by author
+  async getPostsByAuthor(authorId: number, includeUnpublished = false) {
+    try {
+      const whereClause = includeUnpublished 
+        ? { authorId } 
+        : { authorId, published: true }
+
+      const posts = await prisma.post.findMany({
+        where: whereClause,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      return { success: true, data: posts }
+    } catch (error) {
+      console.error('Error fetching posts by author:', error)
+      return { success: false, error: 'Failed to fetch posts' }
+    }
+  },
+
+  // Search posts by title or content
+  async searchPosts(searchTerm: string, skip = 0, take = 10) {
+    try {
+      const [posts, total] = await Promise.all([
+        prisma.post.findMany({
+          where: {
+            OR: [
+              { title: { contains: searchTerm, mode: 'insensitive' } },
+              { content: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+            published: true,
+          },
+          skip,
+          take,
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.post.count({
+          where: {
+            OR: [
+              { title: { contains: searchTerm, mode: 'insensitive' } },
+              { content: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+            published: true,
+          },
+        }),
+      ])
+      
+      return { 
+        success: true, 
+        data: { 
+          posts, 
+          pagination: { 
+            total, 
+            skip, 
+            take, 
+            hasMore: skip + take < total 
+          } 
+        } 
+      }
+    } catch (error) {
+      console.error('Error searching posts:', error)
+      return { success: false, error: 'Failed to search posts' }
+    }
+  },
+
+  // Update post
+  async updatePost(id: number, data: { title?: string; content?: string; published?: boolean }) {
+    try {
+      const post = await prisma.post.update({
+        where: { id },
+        data,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+      return { success: true, data: post }
+    } catch (error) {
+      console.error('Error updating post:', error)
+      return { success: false, error: 'Failed to update post' }
+    }
+  },
+
+  // Delete post
+  async deletePost(id: number) {
+    try {
+      await prisma.post.delete({
+        where: { id },
+      })
+      return { success: true, message: 'Post deleted successfully' }
+    } catch (error) {
+      console.error('Error deleting post:', error)
+      return { success: false, error: 'Failed to delete post' }
+    }
+  },
+
+  // Publish/unpublish post
+  async togglePublishStatus(id: number) {
+    try {
+      const currentPost = await prisma.post.findUnique({
+        where: { id },
+        select: { published: true },
+      })
+
+      if (!currentPost) {
+        return { success: false, error: 'Post not found' }
+      }
+
+      const post = await prisma.post.update({
+        where: { id },
+        data: { published: !currentPost.published },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+      return { success: true, data: post }
+    } catch (error) {
+      console.error('Error toggling publish status:', error)
+      return { success: false, error: 'Failed to toggle publish status' }
+    }
+  },
+}
+
+// Profile Queries
+export const profileQueries = {
+  // Create or update profile
+  async upsertProfile(userId: number, bio: string) {
+    try {
+      const profile = await prisma.profile.upsert({
+        where: { userId },
+        update: { bio },
+        create: { userId, bio },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+      return { success: true, data: profile }
+    } catch (error) {
+      console.error('Error upserting profile:', error)
+      return { success: false, error: 'Failed to update profile' }
+    }
+  },
+
+  // Get profile by user ID
+  async getProfileByUserId(userId: number) {
+    try {
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              posts: {
+                where: { published: true },
+                select: {
+                  id: true,
+                  title: true,
+                  createdAt: true,
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 5,
+              },
+            },
+          },
+        },
+      })
+      return { success: true, data: profile }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+      return { success: false, error: 'Failed to fetch profile' }
+    }
+  },
+
+  // Delete profile
+  async deleteProfile(userId: number) {
+    try {
+      await prisma.profile.delete({
+        where: { userId },
+      })
+      return { success: true, message: 'Profile deleted successfully' }
+    } catch (error) {
+      console.error('Error deleting profile:', error)
+      return { success: false, error: 'Failed to delete profile' }
+    }
+  },
+}
+
+// Advanced Queries
+export const advancedQueries = {
+  // Get user statistics
+  async getUserStats(userId: number) {
+    try {
+      const [user, postCount, publishedPostCount] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          include: { profile: true },
+        }),
+        prisma.post.count({ where: { authorId: userId } }),
+        prisma.post.count({ where: { authorId: userId, published: true } }),
+      ])
+
+      if (!user) {
+        return { success: false, error: 'User not found' }
+      }
+
+      return {
+        success: true,
+        data: {
+          user,
+          stats: {
+            totalPosts: postCount,
+            publishedPosts: publishedPostCount,
+            draftPosts: postCount - publishedPostCount,
+          },
+        },
+      }
+    } catch (error) {
+      console.error('Error fetching user stats:', error)
+      return { success: false, error: 'Failed to fetch user statistics' }
+    }
+  },
+
+  // Get recent activity (recent posts across all users)
+  async getRecentActivity(take = 10) {
+    try {
+      const recentPosts = await prisma.post.findMany({
+        where: { published: true },
+        take,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      return { success: true, data: recentPosts }
+    } catch (error) {
+      console.error('Error fetching recent activity:', error)
+      return { success: false, error: 'Failed to fetch recent activity' }
+    }
+  },
+
+  // Get top authors by post count
+  async getTopAuthors(take = 5) {
+    try {
+      const topAuthors = await prisma.user.findMany({
+        take,
+        include: {
+          posts: {
+            where: { published: true },
+            select: { id: true },
+          },
+          profile: true,
+          _count: {
+            select: {
+              posts: {
+                where: { published: true },
+              },
+            },
+          },
+        },
+        orderBy: {
+          posts: {
+            _count: 'desc',
+          },
+        },
+      })
+      return { success: true, data: topAuthors }
+    } catch (error) {
+      console.error('Error fetching top authors:', error)
+      return { success: false, error: 'Failed to fetch top authors' }
+    }
+  },
+
+  // Bulk operations example
+  async createUserWithProfile(userData: { email: string; name?: string; bio?: string }) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        // Create user
+        const user = await tx.user.create({
+          data: {
+            email: userData.email,
+            name: userData.name,
+          },
+        })
+
+        // Create profile if bio is provided
+        let profile = null
+        if (userData.bio) {
+          profile = await tx.profile.create({
+            data: {
+              userId: user.id,
+              bio: userData.bio,
+            },
+          })
+        }
+
+        return { user, profile }
+      })
+
+      return { success: true, data: result }
+    } catch (error) {
+      console.error('Error creating user with profile:', error)
+      return { success: false, error: 'Failed to create user with profile' }
+    }
+  },
+}
+
+// Raw query examples
+export const rawQueries = {
+  // Example of raw SQL query
+  async getUsersWithPostCounts() {
+    try {
+      const result = await prisma.$queryRaw<Array<{
+        id: number
+        name: string | null
+        email: string
+        post_count: bigint
+      }>>`
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          COUNT(p.id) as post_count
+        FROM "User" u
+        LEFT JOIN "Post" p ON u.id = p."authorId" AND p.published = true
+        GROUP BY u.id, u.name, u.email
+        ORDER BY post_count DESC
+      `
+      
+      // Convert bigint to number for JSON serialization
+      const formattedResult = result.map(row => ({
+        ...row,
+        post_count: Number(row.post_count),
+      }))
+      
+      return { success: true, data: formattedResult }
+    } catch (error) {
+      console.error('Error executing raw query:', error)
+      return { success: false, error: 'Failed to execute raw query' }
+    }
+  },
+}
+
+// Export all query collections
+export const queries = {
+  users: userQueries,
+  posts: postQueries,
+  profiles: profileQueries,
+  advanced: advancedQueries,
+  raw: rawQueries,
+}

@@ -1,0 +1,172 @@
+// This is your Prisma schema file for Template Marketplace
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres.piuwhbwvucwcpwzppjwy:S8dyQtE6y5yMqfyu@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?pgbouncer=true"
+  // url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  PAYPAL
+  STRIPE
+  UPI
+  RAZORPAY
+  BANK_TRANSFER
+}
+
+// Users table
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  role       UserRole @default(USER)
+  isVerified Boolean  @default(false)
+  token      String   @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  orders    Order[]
+  otpVerify OtpVerify[]
+
+  @@map("users")
+}
+
+// Templates table
+model Template {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  coverImage  String
+  resource    String?
+  content     String   @db.Text // Long text for rich content
+  price       Decimal  @db.Decimal(10, 2)
+  offerPrice  Decimal? @db.Decimal(10, 2)
+
+  // JSON field for additional details
+  details Json // { lastUpdated, version, builtWith, githubRepo, documentation }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  orders       Order[]
+  templateTags TemplateTag[]
+
+  // Indexes for search optimization
+  @@index([title])
+  @@index([price])
+  @@map("templates")
+}
+
+// Tags table
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique @db.VarChar(100)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  templateTags TemplateTag[]
+
+  @@map("tags")
+}
+
+model OtpVerify {
+  id        String   @id @default(uuid())
+  otp       String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expireAt  DateTime 
+
+  @@unique([userId])
+  @@index([userId])
+  @@map("otp_verify")
+}
+
+// Junction table for Template-Tag many-to-many relationship
+model TemplateTag {
+  id         String @id @default(uuid())
+  templateId String
+  tagId      String
+
+  // Relations
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate template-tag combinations
+  @@unique([templateId, tagId])
+  @@map("template_tags")
+}
+
+// Orders table
+model Order {
+  id         String      @id @default(uuid())
+  userId     String
+  templateId String
+  amount     Decimal     @db.Decimal(10, 2)
+  status     OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template     Template      @relation(fields: [templateId], references: [id])
+  transactions Transaction[]
+
+  // Indexes
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// Transactions table
+model Transaction {
+  id            String            @id @default(uuid())
+  orderId       String
+  paymentMethod PaymentMethod
+  status        TransactionStatus @default(PENDING)
+  txnId         String            @unique @db.VarChar(255) // External transaction ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([orderId])
+  @@index([status])
+  @@index([txnId])
+  @@map("transactions")
+}
