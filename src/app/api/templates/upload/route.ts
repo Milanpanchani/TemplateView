@@ -64,8 +64,8 @@ export async function POST(req: NextRequest) {
     const url = base ? `${base}/${bucket}/${encodeURI(key)}` : undefined
 
     return NextResponse.json({ success: true, key, url }, { status: 201 })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e?.message || "Upload failed" }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Upload failed" }, { status: 500 })
   }
 }
 

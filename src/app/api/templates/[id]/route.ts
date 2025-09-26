@@ -22,8 +22,9 @@ const updateTemplateSchema = z.object({
 })
 
 // GET /api/templates/[id]?includeTags=true
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params
     const includeTags = new URL(request.url).searchParams.get("includeTags") === "true"
 
     const template = await prisma.template.findUnique({
@@ -47,8 +48,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/templates/[id]
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params
     const data = await request.json()
     const parsed = updateTemplateSchema.parse(data)
     const { tagIds, ...templateData } = parsed
@@ -126,8 +128,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/templates/[id]
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params
     const existing = await prisma.template.findUnique({ where: { id: params.id } })
     if (!existing) {
       return NextResponse.json({ success: false, error: "Template not found" }, { status: 404 })

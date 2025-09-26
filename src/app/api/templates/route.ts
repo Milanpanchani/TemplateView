@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: true, template }, { status: 200 });
         } else {
             // Build where clause for filtering
-            const whereClause: any = {};
+            const whereClause: Record<string, unknown> = {};
             
             // Search in title and description
             if (search) {
@@ -73,9 +73,9 @@ export async function GET(request: NextRequest) {
 
             // Price range filter
             if (minPrice || maxPrice) {
-                whereClause.price = {};
-                if (minPrice) whereClause.price.gte = parseFloat(minPrice);
-                if (maxPrice) whereClause.price.lte = parseFloat(maxPrice);
+                whereClause.price = {} as Record<string, unknown>;
+                if (minPrice) (whereClause.price as Record<string, unknown>).gte = parseFloat(minPrice);
+                if (maxPrice) (whereClause.price as Record<string, unknown>).lte = parseFloat(maxPrice);
             }
 
             // Tag filter
