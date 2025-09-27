@@ -11,8 +11,8 @@ const userSchema = z.object({
 export async function POST(request: NextRequest) {
     try {
         const data = await request.json();
-        const parseData = userSchema.parse(data)
-        const { email } = parseData;
+        // const parseData = userSchema.parse(data)
+        const { email } = data;
         const user = await prisma.user.findUnique({
             where: {
                 email
