@@ -3,20 +3,20 @@ import { prisma } from '../../../../lib/prisma'
 import { z } from 'zod'
 import { generateOtp } from '@/services/otpServices'
 import { createTransport } from 'nodemailer'
+import jwt from 'jsonwebtoken'
 
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters long"),
-  email: z.string().email("Invalid email format")
+  email: z.string().email("Invalid email format"),
+  isBackground: z.boolean().default(false)
 })
-
-
 
 export async function POST(request: NextRequest) {
   try {
     // Get data from request
     const data = await request.json()
     const parseData = userSchema.parse(data)
-    const { name, email } = parseData
+    const { name, email , isBackground } = parseData
     const existingUser = await prisma.user.findUnique({
       where: {
         email
@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
         name,
         email
       }
+    })
+
+    // Create JWT token containing userId and role and store in user table
+    const JWT_SECRET = 'template-marketplace-jwt-secret-key-2024'
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' })
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { token }
     })
 
     const otp = await prisma.otpVerify.create({
@@ -71,7 +79,8 @@ export async function POST(request: NextRequest) {
       "name": user.name,
       "email": user.email,
       "otp": otp.otp,
-      "role": user.role
+      "role": user.role,
+      "token": token
     }
 
 
@@ -82,18 +91,18 @@ export async function POST(request: NextRequest) {
       responseData: responseData
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       // Validation error
       return NextResponse.json({
         success: false,
-        errors: error.errors  // array of validation issues
+        errors: error.issues  // array of validation issues
       }, { status: 400 })
     }
     // console.error('Error:', error)
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

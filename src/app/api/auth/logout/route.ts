@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
     try {
         // Create response
         const response = NextResponse.json({
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         });
 
         return response;
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json({
             success: false,
             error: "Internal server error"

@@ -37,7 +37,6 @@ export default function AddTemplate() {
     const isDraggingRef = useRef<boolean>(false)
     const isSyncingScrollRef = useRef<boolean>(false)
     const [split, setSplit] = useState<number>(50) // percentage width for editor
-    const [mode, setMode] = useState<'edit' | 'preview'>('edit')
 
     function insertSyntax(kind: 'h1' | 'h2' | 'h3' | 'bold' | 'italic' | 'strike' | 'inlineCode' | 'codeBlock' | 'quote' | 'ul' | 'ol' | 'link' | 'image' | 'hr' | 'table') {
         const el = editorRef.current
@@ -96,8 +95,8 @@ export default function AddTemplate() {
                 } else {
                     console.error('Failed to fetch tags:', json.error)
                 }
-            } catch (error) {
-                console.error('Error fetching tags:', error)
+            } catch (_error) {
+                console.error('Error fetching tags:', _error)
             } finally {
                 setLoadingTags(false)
             }
@@ -210,8 +209,8 @@ export default function AddTemplate() {
             const json = await res.json()
             if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed')
             setCoverUrl(json.url)
-        } catch (e: any) {
-            alert(e.message || 'Upload failed')
+        } catch (e: unknown) {
+            alert(e instanceof Error ? e.message : 'Upload failed')
         } finally {
             setLoadingUpload(false)
         }
@@ -234,8 +233,8 @@ export default function AddTemplate() {
             if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed')
             if (json.url) setResource(json.url)
             else if (json.key) setResource(json.key)
-        } catch (e: any) {
-            alert(e.message || 'Upload failed')
+        } catch (e: unknown) {
+            alert(e instanceof Error ? e.message : 'Upload failed')
         } finally {
             setLoadingResourceUpload(false)
         }
@@ -245,7 +244,7 @@ export default function AddTemplate() {
         if (!coverUrl) return alert('Please upload cover image first')
         setLoadingCreate(true)
         try {
-            const body: any = {
+            const body: Record<string, unknown> = {
                 title,
                 description,
                 coverImage: coverUrl,
@@ -255,7 +254,7 @@ export default function AddTemplate() {
             if (offerPrice !== '' && (typeof offerPrice === 'number' ? offerPrice >= 0 : Number(offerPrice) >= 0)) {
                 body.offerPrice = typeof offerPrice === 'string' ? Number(offerPrice) : offerPrice
             }
-            const details: any = {}
+            const details: Record<string, unknown> = {}
             if (lastUpdated.trim()) details.lastUpdated = lastUpdated.trim()
             if (version.trim()) details.version = version.trim()
             const builtWithArray = builtWith.split(',').map(s => s.trim()).filter(Boolean)
@@ -289,8 +288,8 @@ export default function AddTemplate() {
             if (resourceFileInputRef.current) resourceFileInputRef.current.value = ''
             setCoverUrl('')
             setSelectedTagIds([])
-        } catch (e: any) {
-            alert(e.message || 'Create failed')
+        } catch (e: unknown) {
+            alert(e instanceof Error ? e.message : 'Create failed')
         } finally {
             setLoadingCreate(false)
         }

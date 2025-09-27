@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     return response
     
-  } catch (error:any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
         // Validation error
         return NextResponse.json({
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     // console.error('Error:', error)
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

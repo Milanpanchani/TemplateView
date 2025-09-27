@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { generateOtp } from "@/services/otpServices";
 import { createTransport } from 'nodemailer'
@@ -22,17 +21,24 @@ export async function POST(request: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
-        if (!user.isVerified) {
-            return NextResponse.json({ error: "User not verified" }, { status: 401 });
-        }
+        // if (!user.isVerified) {
+        //     return NextResponse.json({ error: "User not verified" }, { status: 401 });
+        // }
 
-        const otp = await prisma.otpVerify.create({
-            data: {
-                userId: user.id,
+        const otp = await prisma.otpVerify.upsert({
+            where: {
+                userId: user.id
+            },
+            update: {
                 otp: generateOtp(),
                 expireAt: new Date(Date.now() + 1000 * 60 * 5)
             },
-        })
+            create: {
+                userId: user.id,
+                otp: generateOtp(),
+                expireAt: new Date(Date.now() + 1000 * 60 * 5)
+            }
+        });
         // Setup mailer
         const transporter = createTransport({
             service: "gmail",
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: "Login successful", responseData: responseData }, { status: 200 });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ success: false, error: error.errors }, { status: 400 })
+            return NextResponse.json({ success: false, error: error.issues }, { status: 400 })
         }
         return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }

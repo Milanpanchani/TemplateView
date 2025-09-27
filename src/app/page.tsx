@@ -1,6 +1,4 @@
 "use client";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
 export default function Home() {
 //   const router = useRouter();
@@ -26,7 +24,7 @@ export default function Home() {
             Welcome back, Milan!
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Here's what's happening with your projects today.
+            Here&apos;s what&apos;s happening with your projects today.
           </p>
         </div>
       </div>

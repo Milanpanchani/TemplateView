@@ -2,9 +2,9 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-
-export default function Otp() {
+function OtpForm() {
     const searchParams = useSearchParams()
     const userId = searchParams.get("userid")
     const router = useRouter()
@@ -49,5 +49,13 @@ export default function Otp() {
 
 
         </>
+    )
+}
+
+export default function Otp() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <OtpForm />
+        </Suspense>
     )
 }   

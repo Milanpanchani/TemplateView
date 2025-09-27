@@ -8,7 +8,7 @@ const publicRoutes = [
 ];
 
 // Define admin routes that require ADMIN role
-const adminRoutes = [
+const _adminRoutes = [
     "/admin"
 ];
 
@@ -44,7 +44,7 @@ function decodeToken(token: string): TokenPayload | null {
         }
 
         return decodedPayload as TokenPayload;
-    } catch (error) {
+    } catch (_error) {
         return null;
     }
 }

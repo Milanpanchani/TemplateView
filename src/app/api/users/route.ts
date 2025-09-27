@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, name, bio } = body
+    const { email, name } = body
     
     // Validate required fields
     if (!email) {
@@ -51,10 +51,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Create user with optional profile
-    const result = bio 
-      ? await queries.advanced.createUserWithProfile({ email, name, bio })
-      : await queries.users.createUser({ email, name })
+    // Create user
+    const result = await queries.users.createUser({ email, name })
     
     if (!result.success) {
       return NextResponse.json(

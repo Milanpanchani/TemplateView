@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     const url = `${publicBase}/${bucket}/${encodeURI(key)}`
 
     return NextResponse.json({ success: true, url, key }, { status: 201 })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e?.message || 'Upload failed' }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Upload failed' }, { status: 500 })
   }
 }
 

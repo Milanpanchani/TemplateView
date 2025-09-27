@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // Simple JWT decode function for Edge Runtime
-function decodeToken(token: string): any {
+function decodeToken(token: string): { userId: string; role: string; exp?: number } | null {
     try {
         const parts = token.split('.');
         if (parts.length !== 3) {
@@ -18,7 +18,7 @@ function decodeToken(token: string): any {
         }
         
         return decodedPayload;
-    } catch (error) {
+    } catch (_error) {
         return null;
     }
 }
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
             user: user
         });
 
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json({
             success: false,
             error: "Internal server error"

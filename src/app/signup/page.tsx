@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function Signup() {
@@ -14,7 +14,7 @@ export default function Signup() {
         const formData = new FormData(e.target as HTMLFormElement);
         // console.log(formData);
         const data = Object.fromEntries(formData);
-        console.log(data);
+        // console.log(data);
         setIsLoading(true);
         try {
             const res = await fetch("/api/auth/signup", {
@@ -22,7 +22,7 @@ export default function Signup() {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({data})
             })
 
             const resData = await res.json();
