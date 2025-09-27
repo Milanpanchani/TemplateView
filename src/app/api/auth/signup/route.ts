@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
   try {
     // Get data from request
     const data = await request.json()
-    // const parseData = userSchema.parse(data)
-    const { name, email , isBackground } = data
+    const parseData = userSchema.parse(data)
+    const { name, email , isBackground } = parseData
     const existingUser = await prisma.user.findUnique({
       where: {
         email
