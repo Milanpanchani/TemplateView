@@ -8,8 +8,9 @@ export default function Sidebar() {
     const navItems = [
         { href: "/", icon: "🏠", label: "Home" },
         { href: "/admin", icon: "👑", label: "Admin Dashboard" },
-        { href: "/admin/addtemplate", icon: "➕", label: "Add Template" },
+        { href: "/admin/templates", icon: "➕", label: "Templates" },
         { href: "/admin/tags", icon: "🏷️", label: "Tags" },
+        { href: "/admin/users", icon: "👥", label: "Users" },
     ];
     
     return (
